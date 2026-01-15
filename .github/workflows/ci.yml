@@ -103,17 +103,15 @@ jobs:
         key: ${{ secrets.AZURE_VM_SSH_KEY }}
         port: 22
         script: |
-          export PATH=$PATH:/usr/bin
-          
           # Arrêter et supprimer l'ancien conteneur (idempotent)
-          docker stop deploiement-tp || true
-          docker rm deploiement-tp || true
+          sudo docker stop deploiement-tp || true
+          sudo docker rm deploiement-tp || true
           
           # Récupérer la dernière image depuis Docker Hub
-          docker pull ${{ secrets.DOCKER_USERNAME }}/deploiement-tp:latest
+          sudo docker pull ${{ secrets.DOCKER_USERNAME }}/deploiement-tp:latest
           
           # Démarrer le nouveau conteneur
-          docker run -d \
+          sudo docker run -d \
             --name deploiement-tp \
             --restart unless-stopped \
             -p 3001:3001 \
