@@ -103,6 +103,8 @@ jobs:
         key: ${{ secrets.AZURE_VM_SSH_KEY }}
         port: 22
         script: |
+          export PATH=$PATH:/usr/bin
+          
           # Arrêter et supprimer l'ancien conteneur (idempotent)
           docker stop deploiement-tp || true
           docker rm deploiement-tp || true
