@@ -34,10 +34,18 @@ jobs:
     - name: Start Flask application
       run: |
         python app.py &
+        echo $! > flask.pid
         sleep 5
     
     - name: Run Jest unit tests
       run: npm test
+    
+    - name: Stop Flask application
+      if: always()
+      run: |
+        if [ -f flask.pid ]; then
+          kill $(cat flask.pid) || true
+        fi
 
   e2e-tests:
     runs-on: ubuntu-latest
@@ -66,10 +74,18 @@ jobs:
     - name: Start Flask application
       run: |
         python app.py &
+        echo $! > flask.pid
         sleep 5
     
     - name: Run Cypress E2E tests
       run: npm run test:e2e
+    
+    - name: Stop Flask application
+      if: always()
+      run: |
+        if [ -f flask.pid ]; then
+          kill $(cat flask.pid) || true
+        fi
     
     - name: Upload Cypress screenshots on failure
       if: failure()
@@ -87,35 +103,18 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     
-    - name: Extract metadata (tags, labels)
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.DOCKER_USERNAME }}/deploiement-tp
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-    
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/deploiement-tp:buildcache
-        cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/deploiement-tp:buildcache,mode=max
+        tags: ${{ secrets.DOCKER_USERNAME }}/deploiement-tp:latest
 
   deploy:
     runs-on: ubuntu-latest
@@ -136,13 +135,10 @@ jobs:
           sudo docker stop deploiement-tp 2>/dev/null || true
           sudo docker rm deploiement-tp 2>/dev/null || true
           
-          # Nettoyer les anciennes images non utilisées
-          sudo docker image prune -f
-          
           # Récupérer la dernière image depuis Docker Hub
           sudo docker pull ${{ secrets.DOCKER_USERNAME }}/deploiement-tp:latest
           
-          # Démarrer le nouveau conteneur avec un nom fixe
+          # Démarrer le nouveau conteneur
           sudo docker run -d \
             --name deploiement-tp \
             --restart unless-stopped \
@@ -152,7 +148,7 @@ jobs:
           # Attendre que l'application démarre
           sleep 5
           
-          # Vérifier que l'application répond localement
+          # Vérifier que l'application répond
           curl -f http://localhost:3001/health || exit 1
           
           # Afficher l'état du conteneur
