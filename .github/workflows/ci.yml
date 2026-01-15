@@ -133,13 +133,16 @@ jobs:
         port: 22
         script: |
           # Arrêter et supprimer l'ancien conteneur (idempotent)
-          sudo docker stop deploiement-tp || true
-          sudo docker rm deploiement-tp || true
+          sudo docker stop deploiement-tp 2>/dev/null || true
+          sudo docker rm deploiement-tp 2>/dev/null || true
+          
+          # Nettoyer les anciennes images non utilisées
+          sudo docker image prune -f
           
           # Récupérer la dernière image depuis Docker Hub
           sudo docker pull ${{ secrets.DOCKER_USERNAME }}/deploiement-tp:latest
           
-          # Démarrer le nouveau conteneur
+          # Démarrer le nouveau conteneur avec un nom fixe
           sudo docker run -d \
             --name deploiement-tp \
             --restart unless-stopped \
@@ -149,8 +152,11 @@ jobs:
           # Attendre que l'application démarre
           sleep 5
           
-          # Vérifier que l'application répond
+          # Vérifier que l'application répond localement
           curl -f http://localhost:3001/health || exit 1
           
-          echo "Déploiement réussi !"
+          # Afficher l'état du conteneur
+          sudo docker ps | grep deploiement-tp
+          
+          echo "✅ Déploiement réussi ! Application accessible sur http://${{ secrets.AZURE_VM_HOST }}:3001"
 
