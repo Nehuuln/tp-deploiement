@@ -7,26 +7,6 @@ describe('Tests E2E - Application Flask', () => {
     });
   });
 
-  it('should display the home page with Hello World', () => {
-    cy.visit('/');
-    
-    cy.contains('Hello, World!').should('be.visible');
-  });
-
-  it('should simulate a real user journey', () => {
-    cy.request('/health').then((response) => {
-      expect(response.status).to.eq(200);
-      expect(response.body).to.eq('OK');
-    });
-
-    cy.visit('/');
-
-    cy.get('p').should('contain', 'Hello, World!');
-    
-    cy.get('body').should('exist');
-    cy.get('p').should('have.length.at.least', 1);
-  });
-
   it('should return 404 for a non-existent route', () => {
     cy.request({
       url: '/non-existent-route',
@@ -36,16 +16,24 @@ describe('Tests E2E - Application Flask', () => {
     });
   });
 
-  it('should test navigation between endpoints', () => {
-    cy.request('/').then((response) => {
-      expect(response.status).to.eq(200);
-      expect(response.body).to.include('Hello, World!');
-    });
+});
 
-    cy.request('/health').then((response) => {
-      expect(response.status).to.eq(200);
-      expect(response.body).to.eq('OK');
-    });
+describe('Counter functionality', () => {
+  it('should increment counter when button is clicked', () => {
+    cy.visit('/');
+    
+    cy.get('#counter').should('have.text', '0');
+    
+    cy.contains('+1').click();
+    cy.get('#counter').should('have.text', '1');
+    
+    cy.contains('+1').click();
+    cy.contains('+1').click();
+    cy.get('#counter').should('have.text', '3');
   });
 
+  it('should display the page title', () => {
+    cy.visit('/');
+    cy.contains('Compteur').should('be.visible');
+  });
 });
